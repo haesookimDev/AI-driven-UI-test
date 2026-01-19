@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.test
+.env.local
+
+# Test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots & Videos
+tests/data/baselines/screenshots/*.current.png
+tests/data/baselines/screenshots/*.diff.png
+
+# AI generated
+tests/e2e/specs/generated/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/

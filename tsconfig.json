@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["node", "@playwright/test"],
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@tests/*": ["tests/*"],
+      "@ai/*": ["tests/ai/*"],
+      "@pages/*": ["tests/e2e/pages/*"],
+      "@fixtures/*": ["tests/e2e/fixtures/*"]
+    }
+  },
+  "include": ["tests/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
