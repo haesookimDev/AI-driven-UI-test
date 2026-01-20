@@ -296,7 +296,7 @@ MIT License
 
 ## 👥 작성자
 
-XGEN QA Team
+김해수(솔루션 연구소, haesookimDev)
 
 ---
 
