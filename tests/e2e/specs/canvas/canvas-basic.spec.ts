@@ -32,13 +32,13 @@ test.describe('캔버스 기본 기능 (인증 필요)', () => {
     });
   });
 
-  test('노드 추가 - ChatGPT', async ({ authenticatedPage }) => {
+  test('노드 추가 - Agent Xgen', async ({ authenticatedPage }) => {
     const initialNodeCount = await canvasPage.getNodeCount();
     console.log('초기 노드 개수:', initialNodeCount);
 
-    // ChatGPT 노드 추가
+    // Agent Xgen 노드 추가
     try {
-      await canvasPage.addNode('ChatOpenAI');
+      await canvasPage.addNode('Agent Xgen');
       await authenticatedPage.waitForTimeout(1000);
 
       // 노드가 추가되었는지 확인
@@ -57,7 +57,7 @@ test.describe('캔버스 기본 기능 (인증 필요)', () => {
 
   test('워크플로우 저장', async ({ authenticatedPage }) => {
     // 노드 추가
-    await canvasPage.addNode('ChatOpenAI');
+    await canvasPage.addNode('Agent Xgen');
     await authenticatedPage.waitForTimeout(1000);
 
     // 워크플로우 저장
@@ -85,7 +85,7 @@ test.describe('캔버스 기본 기능 (인증 필요)', () => {
     const initialNodeCount = await canvasPage.getNodeCount();
 
     // 노드 추가
-    await canvasPage.addNode('ChatOpenAI');
+    await canvasPage.addNode('Agent Xgen');
     await authenticatedPage.waitForTimeout(500);
 
     // Undo
@@ -151,10 +151,10 @@ test.describe('캔버스 노드 연결 (인증 필요)', () => {
 
     try {
       // 두 개의 노드 추가
-      await canvasPage.addNode('ChatOpenAI');
+      await canvasPage.addNode('Agent Xgen');
       await authenticatedPage.waitForTimeout(500);
 
-      await canvasPage.addNode('PromptTemplate');
+      await canvasPage.addNode('API Calling Tool');
       await authenticatedPage.waitForTimeout(500);
 
       console.log('노드 2개 추가 완료');

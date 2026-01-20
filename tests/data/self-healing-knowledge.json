@@ -15,5 +15,11 @@
     "button[type=\"submit\"]",
     "button:has-text(\"로그인\")",
     "form button"
+  ],
+  "Agent Xgen 노드 (팝업 내)": [
+    "text=\"Agent Xgen\""
+  ],
+  "API Calling Tool 노드 (팝업 내)": [
+    "button:has-text(\"API Calling Tool\")"
   ]
 }
