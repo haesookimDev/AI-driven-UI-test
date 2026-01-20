@@ -231,10 +231,22 @@ const button = await selfHealingLocator.find(page, {
 
 ## 📖 문서
 
+### 기본 문서
 - [개발 가이드](QA/DEVELOPMENT_GUIDE.md) - 상세한 개발 방법
 - [테스트 시나리오](QA/TEST_SCENARIOS.md) - 전체 테스트 케이스
 - [AI 기능 명세](QA/AI_FEATURES.md) - AI 기능 상세 설명
 - [시스템 아키텍처](QA/ARCHITECTURE.md) - 아키텍처 설계
+
+### 인증 및 세션 관리
+- [인증 자동화 가이드](AUTH_FIXTURE_GUIDE.md) - Auth fixture 사용법
+- [인증 구현 요약](AUTHENTICATION_SUMMARY.md) - 자동 로그인 구현 내용
+- [세션 충돌 해결](SESSION_CONFLICT_SOLUTION.md) - 동시 실행 시 세션 충돌 해결 방법
+
+### 트러블슈팅
+- [문제 해결 가이드](troubleshooting/TROUBLESHOOTING.md) - 일반적인 문제 해결
+- [로그인 테스트 수정](troubleshooting/LOGIN_TEST_FIXED.md) - 로그인 테스트 문제 해결
+- [Canvas Locator 수정](troubleshooting/CANVAS_LOCATOR_FIX.md) - Canvas DOM 구조 분석 및 locator 수정
+- [Canvas 빠른 수정](troubleshooting/QUICK_FIX_CANVAS.md) - Canvas locator 빠른 수정 가이드
 
 ## 🔧 주요 명령어
 

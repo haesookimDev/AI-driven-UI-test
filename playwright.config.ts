@@ -11,9 +11,10 @@ export default defineConfig({
   // 테스트 파일 패턴
   testMatch: '**/*.spec.ts',
 
-  // 병렬 실행
-  fullyParallel: true,
-  workers: process.env.CI ? 2 : undefined,
+  // 병렬 실행 설정
+  // 인증 필요 테스트는 세션 충돌 방지를 위해 직렬 실행
+  fullyParallel: false,
+  workers: 1, // 동일 계정 세션 제한으로 인해 1개의 worker만 사용
 
   // 재시도 정책
   retries: process.env.CI ? 2 : 0,
@@ -48,6 +49,7 @@ export default defineConfig({
   },
 
   // 브라우저 프로젝트
+  // 세션 충돌 방지를 위해 chromium만 사용 (필요시 다른 브라우저 추가)
   projects: [
     {
       name: 'chromium',
@@ -61,19 +63,15 @@ export default defineConfig({
         },
       },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    // 모바일 테스트 (선택사항)
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
+    // 다른 브라우저 테스트는 필요시 활성화
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
   ],
 
   // 리포터
