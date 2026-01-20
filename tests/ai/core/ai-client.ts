@@ -37,7 +37,7 @@ export class AIClient {
       } else if (config.provider === 'openai' && this.openai) {
         const completion = await this.openai.chat.completions.create({
           model: config.model,
-          max_tokens: config.maxTokens,
+          max_completion_tokens: config.maxTokens,
           temperature: config.temperature,
           messages: [{ role: 'user', content: prompt }],
         });
