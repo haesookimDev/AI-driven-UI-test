@@ -10,8 +10,9 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.emailInput = page.locator('input[name="email"]');
-    this.passwordInput = page.locator('input[name="password"]');
+    // 실제 XGEN DOM 구조에 맞춰 수정
+    this.emailInput = page.locator('input#email'); // 또는 input[type="email"]
+    this.passwordInput = page.locator('input#password'); // 또는 input[type="password"]
     this.submitButton = page.locator('button[type="submit"]');
     this.errorMessage = page.locator('.error-message');
   }
@@ -31,24 +32,26 @@ export class LoginPage {
    */
   async loginWithSelfHealing(email: string, password: string) {
     const emailField = await selfHealingLocator.find(this.page, {
-      original: 'input[name="email"]',
+      original: 'input#email',
       description: '이메일 입력 필드',
       fallbacks: [
         'input[type="email"]',
+        'input[id="email"]',
+        'input[placeholder*="email"]',
         'input[placeholder*="이메일"]',
         'input[placeholder*="Email"]',
-        'form input:nth-child(1)',
       ],
     });
 
     const passwordField = await selfHealingLocator.find(this.page, {
-      original: 'input[name="password"]',
+      original: 'input#password',
       description: '비밀번호 입력 필드',
       fallbacks: [
         'input[type="password"]',
+        'input[id="password"]',
         'input[placeholder*="비밀번호"]',
+        'input[placeholder*="password"]',
         'input[placeholder*="Password"]',
-        'form input:nth-child(2)',
       ],
     });
 
@@ -58,6 +61,7 @@ export class LoginPage {
       fallbacks: [
         'button:has-text("로그인")',
         'button:has-text("Login")',
+        'form button',
         '.login-button',
         '[data-testid="login-button"]',
       ],

@@ -1,8 +1,19 @@
 {
   "이메일 입력 필드": [
-    "input[type=\"email\"]"
+    "input#email",
+    "input[type=\"email\"]",
+    "input[id=\"email\"]",
+    "input[placeholder*=\"email\"]"
   ],
   "비밀번호 입력 필드": [
-    "input[type=\"password\"]"
+    "input#password",
+    "input[type=\"password\"]",
+    "input[id=\"password\"]",
+    "input[placeholder*=\"비밀번호\"]"
+  ],
+  "로그인 버튼": [
+    "button[type=\"submit\"]",
+    "button:has-text(\"로그인\")",
+    "form button"
   ]
 }
