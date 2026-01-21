@@ -57,32 +57,66 @@ export class AIClient {
     throw new Error('No AI provider available');
   }
 
-  async analyzeImage(imageBase64: string, prompt: string): Promise<string> {
-    if (!this.anthropic) {
-      throw new Error('Anthropic client required for image analysis');
+  async analyzeImage(imageBase64: string, prompt: string, useFallback = false): Promise<string> {
+    // 2차: OpenAI (GPT-4V) 폴백
+    if (this.openai) {
+      try {
+        const response = await this.openai.chat.completions.create({
+          model: AIConfig.fallbackModel.model,
+          max_completion_tokens: 2000,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/png;base64,${imageBase64}`,
+                },
+              },
+              { type: 'text', text: prompt },
+            ],
+          }],
+        });
+
+        return response.choices[0]?.message?.content || '';
+      } catch (error) {
+        console.error('OpenAI 이미지 분석도 실패:', error);
+        throw error;
+      }
     }
+    // 1차: Anthropic (Claude) 시도
+    // if (this.anthropic && !useFallback) {
+    //   try {
+    //     const message = await this.anthropic.messages.create({
+    //       model: AIConfig.primaryModel.model,
+    //       max_tokens: 2000,
+    //       messages: [{
+    //         role: 'user',
+    //         content: [
+    //           {
+    //             type: 'image',
+    //             source: {
+    //               type: 'base64',
+    //               media_type: 'image/png',
+    //               data: imageBase64,
+    //             },
+    //           },
+    //           { type: 'text', text: prompt },
+    //         ],
+    //       }],
+    //     });
 
-    const message = await this.anthropic.messages.create({
-      model: AIConfig.primaryModel.model,
-      max_tokens: 2000,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/png',
-              data: imageBase64,
-            },
-          },
-          { type: 'text', text: prompt },
-        ],
-      }],
-    });
+    //     const textBlock = message.content.find(block => block.type === 'text');
+    //     return textBlock?.type === 'text' ? textBlock.text : '';
+    //   } catch (error) {
+    //     console.warn('Anthropic 이미지 분석 실패, 폴백 시도:', error);
+    //     return this.analyzeImage(imageBase64, prompt, true);
+    //   }
+    // }
 
-    const textBlock = message.content.find(block => block.type === 'text');
-    return textBlock?.type === 'text' ? textBlock.text : '';
+    
+
+    throw new Error('이미지 분석 가능한 AI 제공자가 없습니다');
   }
 
   /**
