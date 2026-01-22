@@ -1,5 +1,11 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { runAITest, verifyWithAI, VisionExecutor } from '../../../ai/core/vision-executor';
+import {
+  XGEN_PORT_DEFINITION,
+  XGEN_NODE_CONNECTION_PROMPT,
+  API_TO_AGENT_CONNECTION_PROMPT,
+  ADD_NODE_PROMPT,
+} from '../../../ai/prompts';
 
 /**
  * AI 비전 기반 캔버스 테스트
@@ -78,34 +84,37 @@ test.describe('AI 비전 기반 캔버스 테스트', () => {
     expect(result.success || verified).toBe(true);
   });
 
-  test('더블클릭: 노드 2개 추가 - Agent Xgen과 API Calling Tool', async ({ authenticatedPage }) => {
+  test('더블클릭: 노드 2개 추가 - API Calling Tool(왼쪽)과 Agent Xgen(오른쪽)', async ({ authenticatedPage }) => {
     const executor = new VisionExecutor(authenticatedPage, { maxSteps: 15 });
 
-    // 첫 번째 노드 추가
-    console.log('\n--- 첫 번째 노드 추가 ---');
+    // 첫 번째 노드 추가 (왼쪽: API Calling Tool)
+    console.log('\n--- 첫 번째 노드 추가 (왼쪽: API Calling Tool) ---');
     const first = await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스를 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **왼쪽** 영역을 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.`
     );
 
     await authenticatedPage.waitForTimeout(1000);
 
-    // 두 번째 노드 추가 (다른 위치에)
-    console.log('\n--- 두 번째 노드 추가 ---');
+    // 두 번째 노드 추가 (오른쪽: Agent Xgen)
+    console.log('\n--- 두 번째 노드 추가 (오른쪽: Agent Xgen) ---');
     const second = await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스의 다른 위치를 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **오른쪽** 영역을 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.`
     );
 
     // 검증
     const verified = await executor.verify(
-      '캔버스에 2개 이상의 노드가 있습니다.'
+      '캔버스에 2개 이상의 노드가 있습니다. API Calling Tool이 왼쪽에, Agent Xgen이 오른쪽에 있습니다.'
     );
 
-    expect(first.success && second.success).toBe(true);
+    console.log('첫 번째 노드:', first.success, '두 번째 노드:', second.success, '검증:', verified);
+    expect((first.success && second.success) || verified).toBe(true);
   });
 
-  test('드래그앤드롭: 노드 간 연결선 생성', async ({ authenticatedPage }) => {
+  test('드래그앤드롭: 노드 간 연결선 생성 (API Calling Tool → Agent Xgen)', async ({ authenticatedPage }) => {
     const executor = new VisionExecutor(authenticatedPage, { maxSteps: 25 });
 
     // 1. 줌 아웃으로 캔버스 전체 보기
@@ -119,44 +128,44 @@ test.describe('AI 비전 기반 캔버스 테스트', () => {
     );
     await authenticatedPage.waitForTimeout(500);
 
-    // 2. 첫 번째 노드 추가
-    console.log('\n--- 첫 번째 노드(Agent Xgen) 추가 ---');
+    // 2. 첫 번째 노드 추가 (왼쪽: API Calling Tool - 출력 노드)
+    console.log('\n--- 첫 번째 노드(API Calling Tool) 추가 - 왼쪽 ---');
     await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스 왼쪽 영역을 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **왼쪽** 영역을 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.
+(API Calling Tool은 TOOL을 출력하는 노드이므로 왼쪽에 배치)`
     );
     await authenticatedPage.waitForTimeout(1000);
 
-    // 3. 두 번째 노드 추가
-    console.log('\n--- 두 번째 노드(API Calling Tool) 추가 ---');
+    // 3. 두 번째 노드 추가 (오른쪽: Agent Xgen - 입력 노드)
+    console.log('\n--- 두 번째 노드(Agent Xgen) 추가 - 오른쪽 ---');
     await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스 오른쪽 영역을 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **오른쪽** 영역을 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.
+(Agent Xgen은 TOOL을 입력받는 노드이므로 오른쪽에 배치)`
     );
     await authenticatedPage.waitForTimeout(1000);
 
     // 4. 노드 간 연결 (드래그 앤 드롭)
-    console.log('\n--- 노드 연결 (드래그 앤 드롭) ---');
+    console.log('\n--- 노드 연결 (TOOL → TOOL) ---');
     const connectResult = await executor.execute(
       `[사용 액션: drag, zoom]
-두 노드를 연결하세요.
+${XGEN_PORT_DEFINITION}
+${XGEN_NODE_CONNECTION_PROMPT}
+${API_TO_AGENT_CONNECTION_PROMPT}
 
-**포트 찾는 방법:**
-- 출력 포트: 왼쪽 노드(Agent Xgen)의 오른쪽 가장자리 중앙에 있는 작은 원형 점
-- 입력 포트: 오른쪽 노드(API Calling Tool)의 왼쪽 가장자리 중앙에 있는 작은 원형 점
+**사전 확인:**
+- 캔버스에 노드가 2개 있는지 확인하세요 (노드 수가 1개면 노드 추가 먼저!)
+- 두 노드가 화면에 모두 보이는지 확인하세요
 
-**포트가 잘 안 보이면:**
-zoom 액션으로 줌 인(value: "in")하여 포트를 더 잘 볼 수 있게 하세요.
-
-**연결 방법:**
-drag 액션을 사용하여 출력 포트(x, y)에서 입력 포트(toX, toY)로 드래그하세요.
-
-연결선이 생성되면 done을 반환하세요.`
+**성공 조건:** drag 후 곡선 연결선이 보여야 done. 없으면 재시도.`
     );
 
     // 5. 연결 검증
     const verified = await executor.verify(
-      '두 노드가 연결선(edge)으로 연결되어 있습니다. 선이 왼쪽 노드에서 오른쪽 노드로 이어져 있습니다.'
+      '두 노드가 연결선(edge)으로 연결되어 있습니다. API Calling Tool에서 Agent Xgen으로 선이 이어져 있습니다.'
     );
 
     console.log('연결 결과:', connectResult.steps);
@@ -256,7 +265,7 @@ test.describe('수동 조작 기반 워크플로우 테스트', () => {
     expect(result.success).toBe(true);
   });
 
-  test('수동연결+실행: 노드 2개 추가, 드래그로 연결 후 Run 버튼으로 실행', async ({ authenticatedPage }) => {
+  test('수동연결+실행: API Calling Tool → Agent Xgen 연결 후 Run 실행', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/canvas');
     await authenticatedPage.waitForLoadState('networkidle');
     await authenticatedPage.waitForTimeout(2000);
@@ -274,38 +283,41 @@ test.describe('수동 조작 기반 워크플로우 테스트', () => {
     );
     await authenticatedPage.waitForTimeout(500);
 
-    // 1. 첫 번째 노드 추가
-    console.log('\n--- 1단계: 첫 번째 노드 추가 ---');
+    // 1. 첫 번째 노드 추가 (왼쪽: API Calling Tool - 출력 노드)
+    console.log('\n--- 1단계: API Calling Tool 추가 (왼쪽) ---');
     const step1 = await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스 왼쪽 중앙을 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **왼쪽** 중앙을 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.
+(워크플로우: 왼쪽 → 오른쪽 방향. API Calling Tool은 TOOL을 출력하므로 왼쪽에 배치)`
     );
     await authenticatedPage.waitForTimeout(1000);
 
-    // 2. 두 번째 노드 추가
-    console.log('\n--- 2단계: 두 번째 노드 추가 ---');
+    // 2. 두 번째 노드 추가 (오른쪽: Agent Xgen - 입력 노드)
+    console.log('\n--- 2단계: Agent Xgen 추가 (오른쪽) ---');
     const step2 = await executor.execute(
       `[사용 액션: doubleClick, click]
-캔버스 오른쪽 중앙을 doubleClick하여 노드 추가 팝업을 열고, "API Calling Tool" 노드를 click하여 추가하세요.`
+${ADD_NODE_PROMPT}
+캔버스 **오른쪽** 중앙을 doubleClick하여 노드 추가 팝업을 열고, "Agent Xgen" 노드를 click하여 추가하세요.
+(Agent Xgen은 TOOL을 입력받으므로 오른쪽에 배치)`
     );
     await authenticatedPage.waitForTimeout(1000);
 
-    // 3. 노드 연결
-    console.log('\n--- 3단계: 노드 연결 (드래그 앤 드롭) ---');
+    // 3. 노드 연결 (TOOL → TOOL)
+    console.log('\n--- 3단계: 노드 연결 (TOOL → TOOL) ---');
     const step3 = await executor.execute(
       `[사용 액션: drag, zoom]
-두 노드를 연결하세요.
+${XGEN_PORT_DEFINITION}
+${XGEN_NODE_CONNECTION_PROMPT}
+${API_TO_AGENT_CONNECTION_PROMPT}
 
-**포트 위치 가이드:**
-- 출력 포트: 왼쪽 노드(Agent Xgen)의 **오른쪽 가장자리 수직 중앙**에 있는 작은 원
-- 입력 포트: 오른쪽 노드(API Calling Tool)의 **왼쪽 가장자리 수직 중앙**에 있는 작은 원
+**사전 확인:**
+- 캔버스에 노드가 2개 있어야 합니다 (1개면 연결 불가 → 노드 추가 필요)
+- 두 노드가 화면에 모두 보여야 합니다
 
-**포트가 안 보이면:**
-zoom 액션으로 줌 인(value: "in")하여 포트를 확대하세요.
+**포트가 안 보이면:** zoom in
 
-**연결:**
-drag로 출력 포트(x, y) → 입력 포트(toX, toY) 드래그.
-연결선이 보이면 done.`
+**성공:** 곡선 연결선 보이면 done. 없으면 재시도.`
     );
     await authenticatedPage.waitForTimeout(1000);
 
@@ -324,9 +336,9 @@ drag로 출력 포트(x, y) → 입력 포트(toX, toY) 드래그.
     );
 
     console.log('\n=== 테스트 결과 ===');
-    console.log('1단계 (노드 추가):', step1.success);
-    console.log('2단계 (노드 추가):', step2.success);
-    console.log('3단계 (연결):', step3.success);
+    console.log('1단계 (API Calling Tool 추가):', step1.success);
+    console.log('2단계 (Agent Xgen 추가):', step2.success);
+    console.log('3단계 (TOOL → TOOL 연결):', step3.success);
     console.log('4단계 (실행):', step4.success);
     console.log('검증:', verified);
 

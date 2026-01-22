@@ -1,5 +1,11 @@
 import { Page } from '@playwright/test';
 import { aiClient } from './ai-client';
+import {
+  BASE_ACTIONS_PROMPT,
+  BASE_DRAG_PROMPT,
+  BASE_ZOOM_PROMPT,
+  BASE_SUCCESS_PROMPT,
+} from '../prompts';
 
 /**
  * AI 액션 타입
@@ -17,6 +23,23 @@ export interface AIAction {
 }
 
 /**
+ * 캔버스 상태 정보
+ */
+export interface CanvasState {
+  nodesCount: number;
+  edgesCount: number;
+  hasState: boolean;
+}
+
+/**
+ * VisionExecutor 옵션
+ */
+export interface VisionExecutorOptions {
+  maxSteps?: number;
+  stepDelay?: number;
+}
+
+/**
  * AI 비전 기반 테스트 실행기
  * 스크린샷을 분석하여 테스트 목적을 달성
  */
@@ -25,10 +48,73 @@ export class VisionExecutor {
   private maxSteps: number;
   private stepDelay: number;
 
-  constructor(page: Page, options?: { maxSteps?: number; stepDelay?: number }) {
+  constructor(page: Page, options?: VisionExecutorOptions) {
     this.page = page;
     this.maxSteps = options?.maxSteps || 10;
     this.stepDelay = options?.stepDelay || 500;
+  }
+
+  /**
+   * 캔버스 상태 가져오기 (노드 수, 엣지 수)
+   */
+  private async getCanvasState(): Promise<CanvasState | null> {
+    try {
+      const state = await this.page.evaluate((): CanvasState => {
+        // 여러 방법으로 노드 수 계산 시도
+        let nodesCount = 0;
+        let edgesCount = 0;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const doc = (globalThis as any).document;
+
+        // 방법 1: React Flow 노드 (data-id 속성)
+        const rfNodes = doc.querySelectorAll('.react-flow__node');
+        if (rfNodes.length > 0) {
+          nodesCount = rfNodes.length;
+        }
+
+        // 방법 2: XGEN 커스텀 노드 클래스
+        if (nodesCount === 0) {
+          const xgenNodes = doc.querySelectorAll('[class*="node_"][class*="selected"], [class*="node_"]:not([class*="edge"])');
+          nodesCount = xgenNodes.length;
+        }
+
+        // 방법 3: 노드 타이틀로 찾기 (Agent Xgen, API Calling Tool 등)
+        if (nodesCount === 0) {
+          const nodeTitles = doc.querySelectorAll('[class*="nodeTitle"], [class*="node-title"], [class*="NodeTitle"]');
+          nodesCount = nodeTitles.length;
+        }
+
+        // 방법 4: data-nodeid 속성
+        if (nodesCount === 0) {
+          const dataNodes = doc.querySelectorAll('[data-nodeid], [data-node-id]');
+          nodesCount = dataNodes.length;
+        }
+
+        // 엣지 수 계산
+        const rfEdges = doc.querySelectorAll('.react-flow__edge');
+        edgesCount = rfEdges.length;
+
+        if (edgesCount === 0) {
+          const xgenEdges = doc.querySelectorAll('[class*="edge_"], path[class*="edge"]');
+          edgesCount = xgenEdges.length;
+        }
+
+        return {
+          nodesCount,
+          edgesCount,
+          hasState: nodesCount > 0 || edgesCount > 0
+        };
+      });
+
+      // 콘솔에 상태 로깅
+      console.log(`📊 캔버스 상태: 노드 ${state.nodesCount}개, 엣지 ${state.edgesCount}개`);
+
+      return state;
+    } catch (error) {
+      console.warn('캔버스 상태 가져오기 실패:', error);
+      return null;
+    }
   }
 
   /**
@@ -40,12 +126,49 @@ export class VisionExecutor {
   }
 
   /**
+   * 캔버스 상태 기반 프롬프트 생성
+   */
+  private getCanvasStateContext(canvasState: CanvasState | null): string {
+    if (!canvasState) return '';
+
+    let context = `
+## 🚨 현재 캔버스 상태 (반드시 확인!)
+- **노드 수: ${canvasState.nodesCount}개**
+- **연결선(엣지) 수: ${canvasState.edgesCount}개**
+`;
+    if (canvasState.nodesCount === 0) {
+      context += `
+⛔ **노드가 없습니다!**
+- 노드 연결 불가 - 먼저 노드를 추가하세요
+- zoom, scroll 하지 말고 doubleClick으로 노드 추가!`;
+    } else if (canvasState.nodesCount === 1) {
+      context += `
+⛔ **노드가 1개뿐입니다!**
+- 노드 연결 불가 - 다른 위치에 두 번째 노드를 추가하세요
+- zoom, scroll 하지 말고 다른 위치를 doubleClick하여 노드 추가!
+- 현재 보이는 노드 외에 다른 노드는 없습니다 (스크롤/줌 불필요)`;
+    } else if (canvasState.nodesCount >= 2 && canvasState.edgesCount === 0) {
+      context += `
+✅ 노드 2개 이상 있음 - 연결 가능!
+⚠️ 연결선이 없습니다 - drag로 포트를 연결하세요`;
+    } else if (canvasState.edgesCount > 0) {
+      context += `
+✅ 연결선이 ${canvasState.edgesCount}개 있습니다`;
+    }
+
+    return context;
+  }
+
+  /**
    * AI에게 현재 화면을 분석하고 다음 액션을 결정하게 함
    */
   private async analyzeAndDecide(objective: string, history: string[]): Promise<AIAction> {
     const screenshot = await this.captureScreenshot();
+    const canvasState = await this.getCanvasState();
+    const canvasContext = this.getCanvasStateContext(canvasState);
 
     const prompt = `당신은 웹 UI 테스트 자동화 에이전트입니다.
+${canvasContext}
 
 ## 테스트 목적
 ${objective}
@@ -53,52 +176,15 @@ ${objective}
 ## 지금까지 수행한 액션
 ${history.length > 0 ? history.map((h, i) => `${i + 1}. ${h}`).join('\n') : '없음'}
 
-## 사용 가능한 액션
-1. **click**: 단일 클릭 (x, y 좌표 필수)
-2. **doubleClick**: 더블 클릭 (x, y 좌표 필수)
-3. **drag**: 드래그 앤 드롭 (x, y: 시작점, toX, toY: 끝점 필수)
-4. **type**: 키보드 입력 (value 필수, 현재 포커스된 요소에 입력)
-5. **hover**: 마우스 호버 (x, y 좌표 필수)
-6. **scroll**: 스크롤 (y: 스크롤 양)
-7. **zoom**: 캔버스 줌 인/아웃 (Ctrl+휠) - value: "in" 또는 "out", delta: 휠 양 (기본 -120 줌인, 120 줌아웃)
-8. **wait**: 1초 대기
-9. **done**: 목적 달성 완료
-10. **failed**: 진행 불가
+${BASE_ACTIONS_PROMPT}
 
 ## 지시사항
 현재 스크린샷을 분석하고, 테스트 목적을 달성하기 위해 수행해야 할 **다음 하나의 액션**을 결정하세요.
 
-다음 JSON 형식으로만 응답하세요:
-{
-  "type": "click" | "doubleClick" | "drag" | "type" | "hover" | "scroll" | "zoom" | "wait" | "done" | "failed",
-  "target": "대상 요소 설명 (예: 'Agent Xgen 노드', '검색 입력창')",
-  "x": 시작_X좌표_숫자,
-  "y": 시작_Y좌표_숫자,
-  "toX": 드래그_종료_X좌표_숫자 (drag인 경우 필수),
-  "toY": 드래그_종료_Y좌표_숫자 (drag인 경우 필수),
-  "value": "입력할_텍스트 또는 zoom방향 ('in'/'out')",
-  "delta": 줌_휠_델타값 (zoom인 경우, 기본: -120 줌인, 120 줌아웃),
-  "reason": "이 액션을 선택한 이유"
-}
-
 ## 중요 참고사항
-
-### 줌 (zoom)
-- 캔버스가 너무 확대되어 노드가 잘 보이지 않으면 zoom out (value: "out", delta: 120)
-- 노드가 너무 작아서 포트가 안 보이면 zoom in (value: "in", delta: -120)
-- 줌은 캔버스 중앙에서 수행됩니다
-
-### 드래그 (drag)
-- **노드 이동**: 노드의 헤더(타이틀 바) 부분을 시작점으로 잡고 드래그
-- **노드 연결**: 반드시 출력 포트 → 입력 포트로 드래그
-  - 출력 포트: 노드 오른쪽 가장자리의 작은 원형 점 (보통 노드 우측 중앙)
-  - 입력 포트: 노드 왼쪽 가장자리의 작은 원형 점 (보통 노드 좌측 중앙)
-  - 포트는 노드 경계에서 약간 돌출된 작은 원으로 보임
-
-### 성공 판단
-- **노드 이동 완료**: drag 액션 수행 후, 노드가 의도한 위치로 이동했으면 done
-- **연결 완료**: drag 후 두 노드 사이에 선(edge)이 생겼으면 done
-- 액션 수행 후 화면 변화를 확인하고, 목적이 달성되었으면 반드시 done 반환
+${BASE_ZOOM_PROMPT}
+${BASE_DRAG_PROMPT}
+${BASE_SUCCESS_PROMPT}
 
 ### 좌표 참고
 - 스크린샷 크기 기준으로 좌표를 제공하세요

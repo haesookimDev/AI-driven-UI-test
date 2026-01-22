@@ -174,7 +174,7 @@ AI-Generated: Yes
 Self-Healing: Yes
 
 시나리오:
-1. 사이드 메뉴에서 "ChatOpenAI" 노드 선택
+1. 사이드 메뉴에서 "Agent Xgen" 노드 선택
 2. 캔버스로 드래그 앤 드롭
 3. 노드가 캔버스에 추가되는지 확인
 
@@ -196,7 +196,7 @@ Path: /canvas
 AI-Generated: Yes
 
 시나리오:
-1. ChatOpenAI 노드 추가
+1. Agent Xgen 노드 추가
 2. VectorStore 노드 추가
 3. PromptTemplate 노드 추가
 4. 모든 노드가 겹치지 않고 배치되는지 확인
@@ -216,8 +216,8 @@ Visual Validation: Yes
 
 시나리오:
 1. PromptTemplate 노드 추가
-2. ChatOpenAI 노드 추가
-3. PromptTemplate의 출력 포트를 ChatOpenAI의 입력 포트에 연결
+2. Agent Xgen 노드 추가
+3. PromptTemplate의 출력 포트를 Agent Xgen의 입력 포트에 연결
 4. 연결선(Edge) 생성 확인
 
 검증 항목:
@@ -321,7 +321,7 @@ Path: /canvas
 AI-Generated: Yes
 
 시나리오:
-1. ChatOpenAI 노드 추가 및 선택
+1. Agent Xgen 노드 추가 및 선택
 2. 디테일 패널에서 파라미터 수정:
    - Model: gpt-4
    - Temperature: 0.7
@@ -413,7 +413,7 @@ Anomaly Detection: Yes
 시나리오:
 1. 완전한 워크플로우 생성
    - Input 노드
-   - ChatOpenAI 노드
+   - Agent Xgen 노드
    - Output 노드
 2. "실행" 버튼 클릭
 3. 실행 진행 상황 모니터링
